@@ -94,6 +94,8 @@ export function VisAggConfigsProvider(Private) {
     const dslTopLvl = {};
     let dslLvlCursor;
     let nestedMetrics;
+    const subAggPrefix = 'agg_';
+    let prevSubAggCnt; // count of additional aggregation
 
     if (this.vis.isHierarchical()) {
       // collect all metrics, and filter out the ones that we won't be copying
@@ -119,7 +121,8 @@ export function VisAggConfigsProvider(Private) {
         dslLvlCursor = dslTopLvl;
       } else {
         const prevConfig = list[i - 1];
-        const prevDsl = dslLvlCursor[prevConfig.id];
+        const prevConfigKey = subAggPrefix.repeat(prevSubAggCnt) + prevConfig.id; // previous config key: prefix * n + id
+        const prevDsl = dslLvlCursor[prevConfigKey];
 
         // advance the cursor and nest under the previous agg, or
         // put it on the same level if the previous agg doesn't accept
@@ -127,10 +130,60 @@ export function VisAggConfigsProvider(Private) {
         dslLvlCursor = prevDsl.aggs || dslLvlCursor;
       }
 
-      const dsl = dslLvlCursor[config.id] = config.toDsl();
+      const dsl = config.toDsl();
       let subAggs;
 
       parseParentAggs(dslLvlCursor, dsl);
+
+      let newConfigId = config.id;
+      let newDsl = dsl; // define new dsl for additional aggregation
+      let aggObj = {}; // define aggObj to store orginal dsl
+      prevSubAggCnt = 0;
+      if (config.params.reversedNested) {
+        aggObj[newConfigId] = newDsl;
+        newDsl = {
+          reverse_nested: {},
+          aggs: aggObj
+        };
+        newConfigId = subAggPrefix + newConfigId;
+        prevSubAggCnt++;
+      }
+
+      if (config.params.child) {
+        const childArr = config.params.child.split(',').map((term) => term.trim());
+        const childCnt = childArr.length;
+        for (let i = 0; i < childCnt; ++i) {
+          aggObj = {};
+          aggObj[newConfigId] = newDsl;
+          newDsl = {
+            children: {
+              type: childArr[childCnt - i - 1]
+            },
+            aggs: aggObj
+          };
+          newConfigId = subAggPrefix + newConfigId;
+          prevSubAggCnt++;
+        }
+      }
+
+      if (config.params.nested) {
+        const nestedArr = config.params.field.name.split('.');
+        const nestedLvl = (nestedArr.length - 1 < config.params.nested) ? nestedArr.length - 1 : config.params.nested;
+        for (let i = 0; i < nestedLvl; ++i) {
+          aggObj = {};
+          aggObj[newConfigId] = newDsl;
+          newDsl = {
+            nested: {
+              path: nestedArr[i]
+            },
+            aggs: aggObj
+          };
+          newConfigId = subAggPrefix + newConfigId;
+          prevSubAggCnt++;
+        }
+      }
+
+      dslLvlCursor[newConfigId] = newDsl;
 
       if (config.schema.group === 'buckets' && i < list.length - 1) {
         // buckets that are not the last item in the list accept sub-aggs

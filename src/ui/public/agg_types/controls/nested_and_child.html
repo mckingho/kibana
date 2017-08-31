@@ -1,0 +1,33 @@
+<div class="vis-option-item">
+  <label>
+    <input type="checkbox"
+    name="reversedNested"
+    ng-model="agg.params.reversedNested">
+    Reversed nested
+  </label>
+</div>
+
+<div class="vis-editor-agg-form-row">
+  <div class="form-group">
+    <label>Child</label>
+    <input
+  	ng-model="agg.params.child"
+  	type="text"
+  	class="form-control"
+  	name="child">
+  </div>
+</div>
+
+<div class="vis-editor-agg-form-row">
+  <div class="form-group">
+    <label>Nested</label>
+    <input
+      name="nested"
+      ng-model="agg.params.nested"
+      class="form-control"
+      type="number"
+      min="0"
+    >
+  </div>
+</div>
+
