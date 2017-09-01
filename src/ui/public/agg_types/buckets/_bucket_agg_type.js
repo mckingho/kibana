@@ -16,7 +16,7 @@ export function AggTypesBucketsBucketAggTypeProvider(Private) {
       },
       {
         name: 'child',
-        default: '',
+        default: [ { input: '' } ],
         write: _.noop
       },
       {

@@ -150,14 +150,18 @@ export function VisAggConfigsProvider(Private) {
       }
 
       if (config.params.child) {
-        const childArr = config.params.child.split(',').map((term) => term.trim());
+        const childArr = config.params.child;
         const childCnt = childArr.length;
         for (let i = 0; i < childCnt; ++i) {
+          const childInput = childArr[childCnt - i - 1].input;
+          if (!childInput) {
+            break;
+          }
           aggObj = {};
           aggObj[newConfigId] = newDsl;
           newDsl = {
             children: {
-              type: childArr[childCnt - i - 1]
+              type: childInput
             },
             aggs: aggObj
           };
