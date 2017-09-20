@@ -121,8 +121,19 @@ export function VisAggConfigsProvider(Private) {
         dslLvlCursor = dslTopLvl;
       } else {
         const prevConfig = list[i - 1];
-        const prevConfigKey = subAggPrefix.repeat(prevSubAggCnt) + prevConfig.id; // previous config key: prefix * n + id
-        const prevDsl = dslLvlCursor[prevConfigKey];
+        let prevConfigKey;
+        let prevDsl;
+        if (prevSubAggCnt > 0) {
+          prevDsl = dslLvlCursor;
+          for (let i = prevSubAggCnt; i > 0; --i) {
+            prevConfigKey = subAggPrefix.repeat(i) + prevConfig.id; // previous config key: prefix * n + id
+            prevDsl = prevDsl[prevConfigKey].aggs;
+          }
+          prevDsl = prevDsl[prevConfig.id];
+        }
+        else{
+          prevDsl = dslLvlCursor[prevConfig.id];
+        }
 
         // advance the cursor and nest under the previous agg, or
         // put it on the same level if the previous agg doesn't accept
@@ -139,14 +150,21 @@ export function VisAggConfigsProvider(Private) {
       let newDsl = dsl; // define new dsl for additional aggregation
       let aggObj = {}; // define aggObj to store orginal dsl
       prevSubAggCnt = 0;
-      if (config.params.reversedNested) {
-        aggObj[newConfigId] = newDsl;
-        newDsl = {
-          reverse_nested: {},
-          aggs: aggObj
-        };
-        newConfigId = subAggPrefix + newConfigId;
-        prevSubAggCnt++;
+      if (config.params.nested) {
+        const nestedArr = config.params.field.name.split('.');
+        const nestedLvl = (nestedArr.length - 1 < config.params.nested) ? nestedArr.length - 1 : config.params.nested;
+        for (let i = 0; i < nestedLvl; ++i) {
+          aggObj = {};
+          aggObj[newConfigId] = newDsl;
+          newDsl = {
+            nested: {
+              path: nestedArr[i]
+            },
+            aggs: aggObj
+          };
+          newConfigId = subAggPrefix + newConfigId;
+          prevSubAggCnt++;
+        }
       }
 
       if (config.params.child) {
@@ -170,21 +188,15 @@ export function VisAggConfigsProvider(Private) {
         }
       }
 
-      if (config.params.nested) {
-        const nestedArr = config.params.field.name.split('.');
-        const nestedLvl = (nestedArr.length - 1 < config.params.nested) ? nestedArr.length - 1 : config.params.nested;
-        for (let i = 0; i < nestedLvl; ++i) {
-          aggObj = {};
-          aggObj[newConfigId] = newDsl;
-          newDsl = {
-            nested: {
-              path: nestedArr[i]
-            },
-            aggs: aggObj
-          };
-          newConfigId = subAggPrefix + newConfigId;
-          prevSubAggCnt++;
-        }
+      if (config.params.reversedNested) {
+        aggObj = {};
+        aggObj[newConfigId] = newDsl;
+        newDsl = {
+          reverse_nested: {},
+          aggs: aggObj
+        };
+        newConfigId = subAggPrefix + newConfigId;
+        prevSubAggCnt++;
       }
 
       dslLvlCursor[newConfigId] = newDsl;
