@@ -30,10 +30,36 @@ export function AggResponseTabifyProvider(Private, Notifier) {
    */
   function collectBucket(write, bucket, key) {
     const agg = write.aggStack.shift();
+    const subAggPrefix = 'agg_';
 
     switch (agg.schema.group) {
       case 'buckets':
-        const buckets = new Buckets(bucket[agg.id]);
+        let buckets = new Buckets(bucket[agg.id]);
+
+        // traverse the agg object
+        const bucketKeys = Object.keys(bucket);
+        const bucketLength = bucketKeys.length;
+        const subAggRegex = new RegExp('(' + subAggPrefix + ')*' + agg.id, 'g');
+        let subAggCnt = 0;
+        for (let i = 0; i < bucketLength; ++i) {
+          if (bucketKeys[i].match(subAggRegex)) {
+            const subAggPrefixRegex = new RegExp(subAggPrefix, 'g');
+            // get number of sub agg
+            subAggCnt = (bucketKeys[i].match(subAggPrefixRegex) || []).length;
+            break;
+          }
+        }
+        let aggBucket = bucket;
+        while (subAggCnt > 0) {
+          const prefix = subAggPrefix.repeat(subAggCnt) + agg.id;
+          aggBucket = aggBucket[prefix];
+          subAggCnt--;
+        }
+        // get the deepest agg result
+        if (aggBucket !== undefined) {
+          buckets = new Buckets(aggBucket[agg.id]);
+        }
+
         if (buckets.length) {
           const splitting = write.canSplit && agg.schema.name === 'split';
           if (splitting) {

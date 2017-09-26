@@ -1,0 +1,67 @@
+<div class="vis-option-item">
+  <label>
+    <input type="checkbox"
+    name="reversedNested"
+    ng-model="agg.params.reversedNested">
+    Reversed nested
+  </label>
+</div>
+
+<div class="form-group">
+  <div ng-repeat="child in agg.params.child">
+    <div class="vis-editor-agg-header">
+      <label>
+          Child {{$index + 1}}
+          <span ng-if="child.label">- {{ child.label }}</span>
+      </label>
+
+      <div class="kuiButtonGroup kuiButtonGroup--united">
+        <button
+          type="button"
+          ng-click="agg.params.child.splice($index, 1)"
+          class="kuiButton kuiButton--danger kuiButton--small">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <input
+        ng-model="child.input"
+        type="text"
+        class="form-control"
+        name="child{{$index}}">
+    </div>
+
+  </div>
+</div>
+
+<input ng-model="agg.params.child.length" name="childLength" required type="number" class="ng-hide" />
+<div class="hintbox" ng-show="aggForm.childLength.$invalid">
+  <p>
+    <i class="fa fa-danger text-danger"></i>
+    <strong>Required:</strong> You must specify at least one child.
+  </p>
+</div>
+
+<button
+  click-focus="'child'+(agg.params.child.length-1)"
+  ng-click="agg.params.child.push({input:''})"
+  class="kuiButton kuiButton--primary kuiButton--fullWidth"
+>
+  Add Child
+</button>
+
+<div class="vis-editor-agg-form-row">
+  <div class="form-group">
+    <label>Nested</label>
+    <input
+      name="nested"
+      ng-model="agg.params.nested"
+      class="form-control"
+      type="number"
+      min="0"
+    >
+  </div>
+</div>
+
